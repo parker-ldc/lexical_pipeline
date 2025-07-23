@@ -1,0 +1,4 @@
+.python-version
+test_data
+**/__pycache__
+all_measures_raw.csv
