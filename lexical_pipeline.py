@@ -1,5 +1,5 @@
 ### Usage1:
-# python3 lexical_pipeline_0_3_2.py -output_file ../speechbiomarkers/summarized_lexical_20210413.csv -input_folder ../speechbiomarkers/picture -filetype .txt
+# python3 lexical_pipeline.py -output_file ../speechbiomarkers/summarized_lexical_20210413.csv -input_folder ../speechbiomarkers/picture -filetype .txt
 ## V0.3.2: 2023-April-4
 
 ## Check if all packages are installed and if not, install them.
