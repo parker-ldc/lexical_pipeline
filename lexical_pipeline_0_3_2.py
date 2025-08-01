@@ -4,10 +4,6 @@
 
 ## Check if all packages are installed and if not, install them.
 
-import argparse
-from os import listdir
-from os.path import dirname, isdir
-from os.path import join as join_path
 
 import numpy as np
 import pandas as pd
@@ -19,19 +15,10 @@ from lexicalLibs.prep_text import clean_doc, read_transcript
 from lexicalLibs.rate_words import attach_lexical, get_phondict, lexical_summary
 
 # location of the aggregated lexical measure file
-LEXICAL_LOOKUP = join_path(dirname(__file__), "all_measures_raw.csv")
+
 
 # load nlp model
 nlp = spacy.load("en_core_web_lg")
-
-
-def get_file_list(path: str, suffix: str) -> list[str]:
-    ret: list[str] = []
-    if isdir(path):
-        for f in listdir(path):
-            if f.endswith(suffix):
-                ret.append(f)
-    return ret
 
 
 class Predictor:
@@ -135,146 +122,161 @@ class Predictor:
         return result
 
 
-# main function
-def main(args):
-    # define output file
-    outputname = args.output_file
-
-    # get a list of files to process
-    filelist = get_file_list(args.input_folder, args.filetype)
-
-    print(
-        "List of files to be processed: \n",
-        "\n".join(filelist),
-        "\n If empty, check your directory path and file extension again.",
-    )
-    if not filelist:
-        return None
-
-    # initiate result dataframes
-    allResults = pd.DataFrame()
-
-    predictor = Predictor(pd.read_csv(LEXICAL_LOOKUP), get_phondict(), True)
-
-    # loop through the file list
-    for fname in filelist:
-        file = join_path(args.input_folder, fname)
-        print(file, " is being processed...")
-
-        # read a transcript (transcripts need to be tab-separated!)
-        text = read_transcript(file, args.speaker_label)
-
-        result = predictor.predict(text, fname)
-        result["filename"] = fname
-        #
-        # update the allResults df with the processed doc
-        allResults = pd.concat([allResults, result], sort=True)
-    # define column names for all pos categories
-    col_na = [
-        "ADJ",
-        "ADP",
-        "ADV",
-        "CC",
-        "CCONJ",
-        "CD",
-        "DET",
-        "DT",
-        "EX",
-        "FW",
-        "IN",
-        "INTJ",
-        "JJ",
-        "JJR",
-        "JJS",
-        "MD",
-        "NN",
-        "NNP",
-        "NNPS",
-        "NNS",
-        "NOUN",
-        "NUM",
-        "PART",
-        "PDT",
-        "POS",
-        "PRON",
-        "PROPN",
-        "PRP",
-        "PRP$",
-        "RB",
-        "RBR",
-        "RBS",
-        "RP",
-        "TO",
-        "UH",
-        "VB",
-        "VBD",
-        "VBG",
-        "VBN",
-        "VBP",
-        "VBZ",
-        "VERB",
-        "WDT",
-        "WP",
-        "WP$",
-        "WRB",
-        "X",
-        "XX",
-    ]
-    # if the doc included zero instances of a given pos count, insert 0 for zero count
-    for col in col_na:
-        if col in allResults:
-            allResults[col].fillna(0, inplace=True)
-        else:
-            allResults[col] = 0
-
-    # count the number of tense_inflected verbs
-    allResults["tense_inflected_verb"] = (
-        allResults["MD"] + allResults["VBD"] + allResults["VBP"] + allResults["VBZ"]
-    )
-    # count total filler counts
-    allResults["filler"] = allResults["um"] + allResults["uh"] + allResults["eh"]
-    # output allResults df (this is a word by word dataframe)
-    allResults.to_csv(outputname, index=False)
-    # output a summarized simple result file (this is for collaborators)
-    smalldf = allResults[
-        [
-            "filename",
-            "NOUN",
-            "VERB",
-            "ADJ",
-            "ADV",
-            "ADP",
-            "DET",
-            "PRON",
-            "CCONJ",
-            "PART",
-            "NUM",
-            "filler",
-            "partial",
-            "repetition",
-            "tense_inflected_verb",
-            "lexical_diversity_15",
-            "total_words",
-            "total_words_plus_others",
-            "uniqueContent",
-            "concreteness_content",
-            "frequency_content",
-            "AoA_content",
-            "familiarity_content",
-            "phone_content",
-            "ambiguity_content",
-            "total_syll",
-        ]
-    ]
-    external_filename = outputname.split(".")[0] + "_simple.csv"
-    smalldf.to_csv(external_filename, index=False)
-    # output a summarized full result file (this is generally for internal use.)
-    full_filename = outputname.split(".")[0] + "_full.csv"
-
-    predictor.full_df.to_csv(full_filename, index=False)
-
-
 if __name__ == "__main__":
+    import argparse
+    from os import listdir
+    from os.path import dirname, isdir
+    from os.path import join as join_path
+
+    def get_lexical_measures():
+        return pd.read_csv(join_path(dirname(__file__), "all_measures_raw.csv"))
+
+    def get_file_list(path: str, suffix: str) -> list[str]:
+        ret: list[str] = []
+        if isdir(path):
+            for f in listdir(path):
+                if f.endswith(suffix):
+                    ret.append(f)
+        return ret
+
+    # main function
+    def main(args):
+        # define output file
+        outputname = args.output_file
+
+        # get a list of files to process
+        filelist = get_file_list(args.input_folder, args.filetype)
+
+        print(
+            "List of files to be processed: \n",
+            "\n".join(filelist),
+            "\n If empty, check your directory path and file extension again.",
+        )
+        if not filelist:
+            return None
+
+        # initiate result dataframes
+        allResults = pd.DataFrame()
+
+        predictor = Predictor(get_lexical_measures(), get_phondict(), True)
+
+        # loop through the file list
+        for fname in filelist:
+            file = join_path(args.input_folder, fname)
+            print(file, " is being processed...")
+
+            # read a transcript (transcripts need to be tab-separated!)
+            text = read_transcript(file, args.speaker_label)
+
+            result = predictor.predict(text, fname)
+            result["filename"] = fname
+            #
+            # update the allResults df with the processed doc
+            allResults = pd.concat([allResults, result], sort=True)
+        # define column names for all pos categories
+        col_na = [
+            "ADJ",
+            "ADP",
+            "ADV",
+            "CC",
+            "CCONJ",
+            "CD",
+            "DET",
+            "DT",
+            "EX",
+            "FW",
+            "IN",
+            "INTJ",
+            "JJ",
+            "JJR",
+            "JJS",
+            "MD",
+            "NN",
+            "NNP",
+            "NNPS",
+            "NNS",
+            "NOUN",
+            "NUM",
+            "PART",
+            "PDT",
+            "POS",
+            "PRON",
+            "PROPN",
+            "PRP",
+            "PRP$",
+            "RB",
+            "RBR",
+            "RBS",
+            "RP",
+            "TO",
+            "UH",
+            "VB",
+            "VBD",
+            "VBG",
+            "VBN",
+            "VBP",
+            "VBZ",
+            "VERB",
+            "WDT",
+            "WP",
+            "WP$",
+            "WRB",
+            "X",
+            "XX",
+        ]
+        # if the doc included zero instances of a given pos count, insert 0 for zero count
+        for col in col_na:
+            if col in allResults:
+                allResults[col].fillna(0, inplace=True)
+            else:
+                allResults[col] = 0
+
+        # count the number of tense_inflected verbs
+        allResults["tense_inflected_verb"] = (
+            allResults["MD"] + allResults["VBD"] + allResults["VBP"] + allResults["VBZ"]
+        )
+        # count total filler counts
+        allResults["filler"] = allResults["um"] + allResults["uh"] + allResults["eh"]
+        # output allResults df (this is a word by word dataframe)
+        allResults.to_csv(outputname, index=False)
+        # output a summarized simple result file (this is for collaborators)
+        smalldf = allResults[
+            [
+                "filename",
+                "NOUN",
+                "VERB",
+                "ADJ",
+                "ADV",
+                "ADP",
+                "DET",
+                "PRON",
+                "CCONJ",
+                "PART",
+                "NUM",
+                "filler",
+                "partial",
+                "repetition",
+                "tense_inflected_verb",
+                "lexical_diversity_15",
+                "total_words",
+                "total_words_plus_others",
+                "uniqueContent",
+                "concreteness_content",
+                "frequency_content",
+                "AoA_content",
+                "familiarity_content",
+                "phone_content",
+                "ambiguity_content",
+                "total_syll",
+            ]
+        ]
+        external_filename = outputname.split(".")[0] + "_simple.csv"
+        smalldf.to_csv(external_filename, index=False)
+        # output a summarized full result file (this is generally for internal use.)
+        full_filename = outputname.split(".")[0] + "_full.csv"
+
+        predictor.full_df.to_csv(full_filename, index=False)
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-output_file", type=str, required=True, help="Name the output file"
