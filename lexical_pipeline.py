@@ -22,9 +22,9 @@ nlp = spacy.load("en_core_web_lg")
 
 
 class Predictor:
-    def __init__(self, measureDict: pd.DataFrame, phonDf: pd.DataFrame, full_df: bool):
+    def __init__(self, measureDict: pd.DataFrame, full_df: bool):
         self.measureDict = measureDict
-        self.phonDf = phonDf
+        self.phonDf = get_phondict()
         if full_df:
             self.full_df = pd.DataFrame()
         else:
@@ -158,7 +158,7 @@ if __name__ == "__main__":
         # initiate result dataframes
         allResults = pd.DataFrame()
 
-        predictor = Predictor(get_lexical_measures(), get_phondict(), True)
+        predictor = Predictor(get_lexical_measures(), True)
 
         # loop through the file list
         for fname in filelist:
