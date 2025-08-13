@@ -33,7 +33,7 @@ class Predictor:
     def predict(
         self,
         text: str,
-        filename: str | None,
+        filename: str | None = None,
     ) -> pd.DataFrame:
         # run first-pass pos tagging on the entire doc (POS tags are used to exclude repetitions)
         doc = nlp(text)
